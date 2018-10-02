@@ -31,7 +31,8 @@ from qiskit_aqua.utils import summarize_circuits
 
 logger = logging.getLogger(__name__)
 
-
+from qiskit.wrapper._wrapper import tk_compile as q_compile
+    
 def run_circuits(circuits, backend, execute_config, qjob_config={},
                  max_circuits_per_job=sys.maxsize, show_circuit_summary=False):
     """
