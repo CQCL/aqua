@@ -34,7 +34,6 @@ from qiskit_aqua.utils import summarize_circuits
 
 logger = logging.getLogger(__name__)
 
-from qiskit.wrapper._wrapper import tk_compile as q_compile
     
 MAX_CIRCUITS_PER_JOB = 300
 

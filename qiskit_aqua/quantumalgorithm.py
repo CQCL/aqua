@@ -144,7 +144,7 @@ class QuantumAlgorithm(ABC):
 
     def setup_quantum_backend(self, backend='statevector_simulator', shots=1024, skip_transpiler=False,
                               noise_params=None, coupling_map=None, initial_layout=None, hpc_params=None,
-                              basis_gates=None, max_credits=10, timeout=None, wait=5):
+                              basis_gates=None, max_credits=10, timeout=None, wait=5, compiler='qiskit'):
         """
         Setup the quantum backend.
 
@@ -213,7 +213,8 @@ class QuantumAlgorithm(ABC):
                                 'max_credits': max_credits,
                                 'seed': self._random_seed,
                                 'qobj_id': None,
-                                'hpc': hpc_params}
+                                'hpc': hpc_params,
+                                'compiler': compiler}
 
         info = "Algorithm: '{}' setup with backend '{}', with following setting:\n {}\n{}".format(
             self._configuration['name'], my_backend.configuration()['name'], self._execute_config, self._qjob_config)
