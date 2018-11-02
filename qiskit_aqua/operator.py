@@ -646,6 +646,33 @@ class Operator(object):
                 if self._dia_matrix is None:
                     self._to_dia_matrix(mode='matrix')
                 quantum_state = np.asarray(result.get_statevector(circuits[0]))
+                
+                def remap_state(quantum_state, qmap):
+                    newqstate= np.copy(quantum_state)
+
+                    dimension = len(quantum_state)
+                    n_qb = int(np.log2(dimension))
+
+                    for i in range(dimension):
+                        basis_bin = "{1:0{0}b}".format(n_qb, i)
+                        basis_bin = [i for i in basis_bin]
+                        basis_bin.reverse()
+
+                        new_basis_bin = ['0']*n_qb
+                        for start, end in enumerate(qmap[:n_qb]):
+                #             if start<n_qb and end <n_qb:
+                            new_basis_bin[start] = basis_bin[end]
+
+                        new_basis_bin.reverse()
+                        j = int(''.join(new_basis_bin), 2)
+                        newqstate[j] = quantum_state[i]
+
+                    return newqstate
+                
+                qmap =[0, 2, 1, 3, 4]
+                # quantum_state = remap_state(quantum_state, qmap)
+
+
                 if self._dia_matrix is not None:
                     avg = np.sum(self._dia_matrix * np.absolute(quantum_state) ** 2)
                 else:
