@@ -647,29 +647,29 @@ class Operator(object):
                     self._to_dia_matrix(mode='matrix')
                 quantum_state = np.asarray(result.get_statevector(circuits[0]))
                 
-                def remap_state(quantum_state, qmap):
-                    newqstate= np.copy(quantum_state)
+                # def remap_state(quantum_state, qmap):
+                #     newqstate= np.copy(quantum_state)
 
-                    dimension = len(quantum_state)
-                    n_qb = int(np.log2(dimension))
+                #     dimension = len(quantum_state)
+                #     n_qb = int(np.log2(dimension))
 
-                    for i in range(dimension):
-                        basis_bin = "{1:0{0}b}".format(n_qb, i)
-                        basis_bin = [i for i in basis_bin]
-                        basis_bin.reverse()
+                #     for i in range(dimension):
+                #         basis_bin = "{1:0{0}b}".format(n_qb, i)
+                #         basis_bin = [i for i in basis_bin]
+                #         basis_bin.reverse()
 
-                        new_basis_bin = ['0']*n_qb
-                        for start, end in enumerate(qmap[:n_qb]):
-                #             if start<n_qb and end <n_qb:
-                            new_basis_bin[start] = basis_bin[end]
+                #         new_basis_bin = ['0']*n_qb
+                #         for start, end in enumerate(qmap[:n_qb]):
+                # #             if start<n_qb and end <n_qb:
+                #             new_basis_bin[start] = basis_bin[end]
 
-                        new_basis_bin.reverse()
-                        j = int(''.join(new_basis_bin), 2)
-                        newqstate[j] = quantum_state[i]
+                #         new_basis_bin.reverse()
+                #         j = int(''.join(new_basis_bin), 2)
+                #         newqstate[j] = quantum_state[i]
 
-                    return newqstate
+                #     return newqstate
                 
-                qmap =[0, 2, 1, 3, 4]
+                # qmap =[0, 2, 1, 3, 4]
                 # quantum_state = remap_state(quantum_state, qmap)
 
 
@@ -686,6 +686,7 @@ class Operator(object):
                         avg += pauli[0]
                     else:
                         quantum_state_i = np.asarray(result.get_statevector(circuits[circuit_idx]))
+                        print("avg {}".format(idx), np.real(pauli[0] * (np.vdot(quantum_state, quantum_state_i))))
                         avg += pauli[0] * (np.vdot(quantum_state, quantum_state_i))
                         circuit_idx += 1
         else:
