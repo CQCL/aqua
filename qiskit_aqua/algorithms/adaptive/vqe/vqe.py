@@ -274,7 +274,6 @@ class VQE(QuantumAlgorithm):
             circuit = self._operator.construct_evaluation_circuit(self._operator_mode,
                                                                   input_circuit, self._backend)
             circuits.append(circuit)
-
         to_be_simulated_circuits = functools.reduce(lambda x, y: x + y, circuits)
         result = self.execute(to_be_simulated_circuits)
         mean_energy = []

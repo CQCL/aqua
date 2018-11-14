@@ -38,7 +38,7 @@ from qiskit_aqua import Preferences
 
 logger = logging.getLogger(__name__)
 
-
+import time
 class QuantumAlgorithm(ABC):
 
     # Configuration dictionary keys
@@ -240,9 +240,11 @@ class QuantumAlgorithm(ABC):
         Returns:
             Result: Result object
         """
+        start_time = time.time()
         result = run_circuits(circuits, self._backend, self._execute_config,
                               self._qjob_config, show_circuit_summary=self._show_circuit_summary,
                               has_shared_circuits=self._has_shared_circuits)
+        print("Execution time: ", time.time() - start_time)
         if self._show_circuit_summary:
             self.disable_circuit_summary()
 

@@ -125,7 +125,9 @@ def run_circuits(circuits, backend, execute_config, qjob_config={},
     qobjs = []
     jobs = []
     chunks = int(np.ceil(len(circuits) / max_circuits_per_job))
-
+    logger.debug("Before compile, there are {} circuits and they are chunked into {} chunks, "
+                "each with {} circutis.".format(len(circuits), chunks,
+                                                max_circuits_per_job))
     for i in range(chunks):
         sub_circuits = circuits[i *
                                 max_circuits_per_job:(i + 1) * max_circuits_per_job]
@@ -134,6 +136,8 @@ def run_circuits(circuits, backend, execute_config, qjob_config={},
         jobs.append(job)
         qobjs.append(qobj)
 
+    logger.debug("Compile finished")
+    
     if logger.isEnabledFor(logging.DEBUG) and show_circuit_summary:
         logger.debug(summarize_circuits(circuits))
 
