@@ -291,7 +291,7 @@ class VarFormUCCSD(VariationalForm):
 
     @staticmethod
     def compute_excitation_lists(num_particles, num_orbitals, active_occ_list=None,
-                                 active_unocc_list=None, same_spin_doubles=True):
+                                 active_unocc_list=None, same_spin_doubles=False):
         """
         Computes single and double excitation lists
 
