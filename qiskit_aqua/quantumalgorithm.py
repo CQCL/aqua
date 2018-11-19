@@ -244,7 +244,7 @@ class QuantumAlgorithm(ABC):
         result = run_circuits(circuits, self._backend, self._execute_config,
                               self._qjob_config, show_circuit_summary=self._show_circuit_summary,
                               has_shared_circuits=self._has_shared_circuits)
-        logger.info("Execution time: ", time.time() - start_time)
+        logger.info("Execution time: {}".format(time.time() - start_time))
         if self._show_circuit_summary:
             self.disable_circuit_summary()
 
