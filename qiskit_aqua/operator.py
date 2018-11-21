@@ -46,10 +46,6 @@ class Operator(object):
         For grouped paulis represnetation, all operations will always convert it to paulis and then convert it back.
         (It might be a performance issue.)
     """
-    x = scisparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
-    y = scisparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
-    z = scisparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
-    id_ = scisparse.csr_matrix(np.array([[1, 0], [0, 1]], dtype=complex))
 
     def __init__(self, paulis=None, grouped_paulis=None, matrix=None, coloring="largest-degree"):
         """
@@ -752,13 +748,16 @@ class Operator(object):
         return avg, variance
 
     def _eval_directly(self, quantum_state):
-        self._check_representation("matrix")
+        # self._check_representation("matrix")
         if self._dia_matrix is None:
             self._to_dia_matrix(mode='matrix')
         if self._dia_matrix is not None:
             avg = np.sum(self._dia_matrix * np.absolute(quantum_state) ** 2)
         else:
-            avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
+            product = lambda c, M, v: c*np.vdot(v, M.dot(v))
+            pauli_evals = (product(coeff, pauli.to_spmatrix(), quantum_state) for coeff, pauli in self._paulis)
+            avg = reduce(lambda x, y: x+y, pauli_evals)
+            # avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg
 
     def eval(self, operator_mode, input_circuit, backend, execute_config={}, qjob_config={}):
@@ -981,48 +980,50 @@ class Operator(object):
         """
         if self._paulis == []:
             return
+
         # import time
-     
         # start = time.time()
-        p = self._paulis[0]
+        # p = self._paulis[0]
 
 
-        # print(p[1].to_spmatrix().shape)
-        n_qubits = p[1].numberofqubits
-        dim = 2**n_qubits
-        n_paulis = len(self._paulis)
-        coeffs = np.zeros(n_paulis, dtype=np.complex)
-        bools = np.zeros((n_paulis, 2,n_qubits), dtype=np.bool)
-        for i, pauli in enumerate(self._paulis):
-            coeffs[i] = pauli[0]
-            bools[i, 0] = pauli[1].v
-            bools[i, 1] = pauli[1].w
+        # n_qubits = p[1].numberofqubits
+        # dim = 2**n_qubits
+        # n_paulis = len(self._paulis)
+        # coeffs = np.zeros(n_paulis, dtype=np.complex)
+        # # bools = np.zeros((n_paulis, 2,n_qubits), dtype=np.bool)
+        # for i, pauli in enumerate(self._paulis):
+        #     coeffs[i] = pauli[0]
+        #     # bools[i, 0] = pauli[1].z
+        #     # bools[i, 1] = pauli[1].x
 
         # all_mats = np.zeros((n_paulis, dim, dim), dtype=np.complex)
-        all_mats = []
-        for i, (coeff,pauli) in enumerate(self._paulis):
-            # all_mats[i] = pauli[1].to_matrix()
+        all_mats = (coeff*pauli.to_spmatrix() for coeff, pauli in self._paulis)
+        # for i, (coeff,pauli) in enumerate(self._paulis):
+        #     # all_mats[i] = pauli[1].to_matrix()
             
-            matrix = 1
-            for k in range(n_qubits):
-                if pauli.v[k] == 0 and pauli.w[k] == 0:
-                    new = self.id_
-                elif pauli.v[k] == 1 and pauli.w[k] == 0:
-                    new = self.z
-                elif pauli.v[k] == 0 and pauli.w[k] == 1:
-                    new = self.x
-                elif pauli.v[k] == 1 and pauli.w[k] == 1:
-                    new = self.y
-                else:
-                    print('the string is not of the form 0 and 1')
-                matrix = scisparse.kron(new, matrix, 'csr')
+        #     # matrix = 1
+        #     # for k in range(n_qubits):
+        #     #     if pauli.v[k] == 0 and pauli.w[k] == 0:
+        #     #         new = self.id_
+        #     #     elif pauli.v[k] == 1 and pauli.w[k] == 0:
+        #     #         new = self.z
+        #     #     elif pauli.v[k] == 0 and pauli.w[k] == 1:
+        #     #         new = self.x
+        #     #     elif pauli.v[k] == 1 and pauli.w[k] == 1:
+        #     #         new = self.y
+        #     #     else:
+        #     #         print('the string is not of the form 0 and 1')
+        #     #     matrix = scisparse.kron(new, matrix, 'csr')
 
-            all_mats.append(matrix)
-            # all_mats.append(pauli[1].to_spmatrix())
+        #     # all_mats.append(matrix)
+        #     all_mats.append(pauli.to_spmatrix())
 
-        all_mats = coeffs*all_mats
+        # all_mats = coeffs*all_mats
+        # print("all_mats: ", time.time()-start, flush=True)
+        hamiltonian = reduce(lambda x, y: x+y, all_mats)
+        # print("sum: ", time.time()-start, flush=True)
 
-        hamiltonian = np.sum(all_mats, axis=0)
+        # hamiltonian = np.sum(all_mats)
         
         # hamiltonian = p[0] * p[1].to_spmatrix()
         # for idx in range(1, len(self._paulis)):
