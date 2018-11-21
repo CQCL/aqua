@@ -46,6 +46,10 @@ class Operator(object):
         For grouped paulis represnetation, all operations will always convert it to paulis and then convert it back.
         (It might be a performance issue.)
     """
+    x = scisparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
+    y = scisparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
+    z = scisparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
+    id_ = scisparse.csr_matrix(np.array([[1, 0], [0, 1]], dtype=complex))
 
     def __init__(self, paulis=None, grouped_paulis=None, matrix=None, coloring="largest-degree"):
         """
@@ -981,17 +985,62 @@ class Operator(object):
         """
         if self._paulis == []:
             return
+        # import time
+     
+        # start = time.time()
         p = self._paulis[0]
-        hamiltonian = p[0] * p[1].to_spmatrix()
-        for idx in range(1, len(self._paulis)):
-            p = self._paulis[idx]
-            hamiltonian += p[0] * p[1].to_spmatrix()
+
+
+        # print(p[1].to_spmatrix().shape)
+        n_qubits = p[1].numberofqubits
+        dim = 2**n_qubits
+        n_paulis = len(self._paulis)
+        coeffs = np.zeros(n_paulis, dtype=np.complex)
+        bools = np.zeros((n_paulis, 2,n_qubits), dtype=np.bool)
+        for i, pauli in enumerate(self._paulis):
+            coeffs[i] = pauli[0]
+            bools[i, 0] = pauli[1].v
+            bools[i, 1] = pauli[1].w
+
+        # all_mats = np.zeros((n_paulis, dim, dim), dtype=np.complex)
+        all_mats = []
+        for i, (coeff,pauli) in enumerate(self._paulis):
+            # all_mats[i] = pauli[1].to_matrix()
+            
+            matrix = 1
+            for k in range(n_qubits):
+                if pauli.v[k] == 0 and pauli.w[k] == 0:
+                    new = self.id_
+                elif pauli.v[k] == 1 and pauli.w[k] == 0:
+                    new = self.z
+                elif pauli.v[k] == 0 and pauli.w[k] == 1:
+                    new = self.x
+                elif pauli.v[k] == 1 and pauli.w[k] == 1:
+                    new = self.y
+                else:
+                    print('the string is not of the form 0 and 1')
+                matrix = scisparse.kron(new, matrix, 'csr')
+
+            all_mats.append(matrix)
+            # all_mats.append(pauli[1].to_spmatrix())
+
+        all_mats = coeffs*all_mats
+
+        hamiltonian = np.sum(all_mats, axis=0)
+        
+        # hamiltonian = p[0] * p[1].to_spmatrix()
+        # for idx in range(1, len(self._paulis)):
+        #     p = self._paulis[idx]
+        #     hamiltonian += p[0] * p[1].to_spmatrix()
+
+
         self._matrix = hamiltonian
         # print(self._matrix)
         # print(self._matrix.shape)
         self._to_dia_matrix(mode='matrix')
         self._paulis = None
         self._grouped_paulis = None
+
 
     def _grouped_paulis_to_matrix(self):
         """
