@@ -265,14 +265,14 @@ class VarFormUCCSD(VariationalForm):
                 qubit_op = self._hopping_ops['_'.join([str(x) for x in s_e_qubits])]
                 if qubit_op is not None:
                     circuit.extend(qubit_op.evolve(None, parameters[param_idx] * -1j,
-                                                   'circuit', self._num_time_slices, q))
+                                                   'circuit', self._num_time_slices, param_idx, q))
                     param_idx += 1
 
             for d_e_qubits in self._double_excitations:
                 qubit_op = self._hopping_ops['_'.join([str(x) for x in d_e_qubits])]
                 if qubit_op is not None:
                     circuit.extend(qubit_op.evolve(None, parameters[param_idx] * -1j,
-                                                   'circuit', self._num_time_slices, q))
+                                                   'circuit', self._num_time_slices, param_idx, q))
                     param_idx += 1
 
         return circuit
