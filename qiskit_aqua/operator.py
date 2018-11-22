@@ -748,16 +748,19 @@ class Operator(object):
         return avg, variance
 
     def _eval_directly(self, quantum_state):
-        # self._check_representation("matrix")
+        self._check_representation("matrix")
         if self._dia_matrix is None:
             self._to_dia_matrix(mode='matrix')
         if self._dia_matrix is not None:
             avg = np.sum(self._dia_matrix * np.absolute(quantum_state) ** 2)
         else:
-            product = lambda c, M, v: c*np.vdot(v, M.dot(v))
-            pauli_evals = (product(coeff, pauli.to_spmatrix(), quantum_state) for coeff, pauli in self._paulis)
-            avg = reduce(lambda x, y: x+y, pauli_evals)
-            # avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
+            # product = lambda c, M, v: c*np.vdot(v, M.dot(v))
+            # pauli_evals = (product(coeff, pauli.to_spmatrix(), quantum_state) for coeff, pauli in self._paulis)
+            # avg = reduce(lambda x, y: x+y, pauli_evals)
+            if self._matrix is not None:
+                avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
+            else:
+                avg = complex(0.0, 0.0)
         return avg
 
     def eval(self, operator_mode, input_circuit, backend, execute_config={}, qjob_config={}):
