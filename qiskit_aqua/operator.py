@@ -34,6 +34,7 @@ from qiskit.qasm import pi
 from qiskit_aqua import AlgorithmError, QuantumAlgorithm
 from qiskit_aqua.utils import PauliGraph, run_circuits, find_regs_by_name
 
+from pytket._bubble import pauli_matrix
 logger = logging.getLogger(__name__)
 
 
@@ -748,17 +749,28 @@ class Operator(object):
         return avg, variance
 
     def _eval_directly(self, quantum_state):
-        self._check_representation("matrix")
+        # import time
+        # start = time.time()
+        # self._check_representation("matrix")
         if self._dia_matrix is None:
             self._to_dia_matrix(mode='matrix')
         if self._dia_matrix is not None:
             avg = np.sum(self._dia_matrix * np.absolute(quantum_state) ** 2)
         else:
-            # product = lambda c, M, v: c*np.vdot(v, M.dot(v))
-            # pauli_evals = (product(coeff, pauli.to_spmatrix(), quantum_state) for coeff, pauli in self._paulis)
-            # avg = reduce(lambda x, y: x+y, pauli_evals)
-            if self._matrix is not None:
-                avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
+            if self._paulis:
+                # z_vecs = [p.z for _, p in self._paulis]
+                # x_vecs = [p.x for _, p in self._paulis]
+                # coeffs = [c for c, _ in self._paulis]
+                # p_mat = all_pauli_matrix(coeffs, z_vecs, x_vecs)
+                p_mat_terms = [coeff*pauli_matrix(p.z, p.x).tocsr() for coeff, p in self._paulis]
+                p_mat = reduce(lambda x, y: x+y, p_mat_terms)
+                # print("convert_time", time.time()-start)
+                avg = np.vdot(quantum_state, p_mat.dot(quantum_state))
+                # product = lambda c, M, v: c*np.vdot(v, M.dot(v))
+                # pauli_evals = (product(coeff, pauli.to_spmatrix(), quantum_state) for coeff, pauli in self._paulis)
+                
+            # if self._matrix is not None:
+            #     avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
             else:
                 avg = complex(0.0, 0.0)
         return avg
