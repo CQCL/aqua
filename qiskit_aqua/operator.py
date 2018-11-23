@@ -762,7 +762,7 @@ class Operator(object):
                 # x_vecs = [p.x for _, p in self._paulis]
                 # coeffs = [c for c, _ in self._paulis]
                 # p_mat = all_pauli_matrix(coeffs, z_vecs, x_vecs)
-                p_mat_terms = [coeff*pauli_matrix(p.z, p.x).tocsr() for coeff, p in self._paulis]
+                p_mat_terms = (coeff*pauli_matrix(p.z, p.x).tocsr() for coeff, p in self._paulis)
                 p_mat = reduce(lambda x, y: x+y, p_mat_terms)
                 # print("convert_time", time.time()-start)
                 avg = np.vdot(quantum_state, p_mat.dot(quantum_state))
