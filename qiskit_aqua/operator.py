@@ -1205,9 +1205,9 @@ class Operator(object):
             raise ValueError('Unrecognized grouping {}.'.format(grouping))
 
     @staticmethod
-    def construct_evolution_circuit(slice_pauli_list, evo_time, num_time_slices, state_registers,
+    def construct_evolution_circuit(slice_pauli_list, evo_time, num_time_slices, state_registers, tk_param_idx,
                                     ancillary_registers=None, ctl_idx=0, unitary_power=None, use_basis_gates=True,
-                                    shallow_slicing=False):
+                                    shallow_slicing=False, use_symbolics=False):
         """
         Construct the evolution circuit according to the supplied specification.
 
@@ -1232,6 +1232,11 @@ class Operator(object):
         qc_slice = QuantumCircuit(state_registers)
         if ancillary_registers is not None:
             qc_slice.add_register(ancillary_registers)
+
+        
+        if use_symbolics:
+            qc_slice.definitions.update({"symrz":{"print": True, "opaque": False, "n_args":0, "n_bits":1, "args":[], "bits":[]}})
+
 
         # for each pauli [IXYZ]+, record the list of qubit pairs needing CX's
         cnot_qubit_pairs = [None] * len(slice_pauli_list)
@@ -1286,7 +1291,10 @@ class Operator(object):
             if top_XYZ_pauli_indices[pauli_idx] >= 0:
                 if ancillary_registers is None:
                     lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
-                    if use_basis_gates:
+                    if use_symbolics:
+                        name = "tkparam_" + str(tk_param_idx) + ";*" + str((2.0*pauli[0]/num_time_slices).imag)
+                        qc_slice.symrz(state_registers[top_XYZ_pauli_indices[pauli_idx]], name)
+                    elif use_basis_gates:
                         qc_slice.u1(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
                     else:
                         qc_slice.rz(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
@@ -1399,8 +1407,8 @@ class Operator(object):
             )
             return side + middle + side
 
-    def evolve(self, state_in, evo_time, evo_mode, num_time_slices, quantum_registers=None,
-               paulis_grouping='random', expansion_mode='trotter', expansion_order=1):
+    def evolve(self, state_in, evo_time, evo_mode, num_time_slices, tk_param_idx, quantum_registers=None,
+               paulis_grouping='random', expansion_mode='trotter', expansion_order=1, use_symbolics=False):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
@@ -1481,7 +1489,7 @@ class Operator(object):
                             expansion_order
                         )
                 return self.construct_evolution_circuit(
-                    slice_pauli_list, evo_time, num_time_slices, quantum_registers
+                    slice_pauli_list, evo_time, num_time_slices, quantum_registers, tk_param_idx, use_symbolics=use_symbolics
                 )
         else:
             raise ValueError('Evolution mode should be either "matrix" or "circuit".')
