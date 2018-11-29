@@ -114,7 +114,7 @@ class UCCSD(VariationalForm):
     def __init__(self, num_qubits, depth, num_orbitals, num_particles,
                  active_occupied=None, active_unoccupied=None, initial_state=None,
                  qubit_mapping='parity', two_qubit_reduction=False, num_time_slices=1,
-                 cliffords=None, sq_list=None, tapering_values=None, symmetries=None, use_symbolics=False):
+                 cliffords=None, sq_list=None, tapering_values=None, symmetries=None):
         """Constructor.
 
         Args:
@@ -170,7 +170,6 @@ class UCCSD(VariationalForm):
 
         self._hopping_ops, self._num_parameters = self._build_hopping_operators()
         self._bounds = [(-np.pi, np.pi) for _ in range(self._num_parameters)]
-        self._use_symbolics = use_symbolics
 
     def _build_hopping_operators(self):
 
@@ -235,7 +234,7 @@ class UCCSD(VariationalForm):
                          'with symmetries'.format(','.join([str(x) for x in index])))
         return qubit_op
 
-    def construct_circuit(self, parameters, q=None):
+    def construct_circuit(self, parameters, q=None, use_symbolics=False):
         """
         Construct the variational form, given its parameters.
 
@@ -266,14 +265,14 @@ class UCCSD(VariationalForm):
                 qubit_op = self._hopping_ops['_'.join([str(x) for x in s_e_qubits])]
                 if qubit_op is not None:
                     circuit.extend(qubit_op.evolve(None, parameters[param_idx] * -1j,
-                                                   'circuit', self._num_time_slices, param_idx, q, use_symbolics=self._use_symbolics))
+                                                   'circuit', self._num_time_slices, param_idx, q, use_symbolics=use_symbolics))
                     param_idx += 1
 
             for d_e_qubits in self._double_excitations:
                 qubit_op = self._hopping_ops['_'.join([str(x) for x in d_e_qubits])]
                 if qubit_op is not None:
                     circuit.extend(qubit_op.evolve(None, parameters[param_idx] * -1j,
-                                                   'circuit', self._num_time_slices, param_idx, q, use_symbolics=self._use_symbolics))
+                                                   'circuit', self._num_time_slices, param_idx, q, use_symbolics=use_symbolics))
                     param_idx += 1
 
         return circuit

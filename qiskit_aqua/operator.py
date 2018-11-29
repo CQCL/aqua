@@ -1235,10 +1235,6 @@ class Operator(object):
         if ancillary_registers is not None:
             qc_slice.add_register(ancillary_registers)
 
-        
-        if use_symbolics:
-            qc_slice.definitions.update({"symrz":{"print": True, "opaque": False, "n_args":0, "n_bits":1, "args":[], "bits":[]}})
-
 
         # for each pauli [IXYZ]+, record the list of qubit pairs needing CX's
         cnot_qubit_pairs = [None] * len(slice_pauli_list)

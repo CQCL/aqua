@@ -30,6 +30,11 @@ from qiskit_aqua import QuantumAlgorithm, AquaError
 from qiskit_aqua import PluggableType, get_pluggable_class
 from qiskit_aqua.utils import find_regs_by_name
 
+from qiskit.dagcircuit import DAGCircuit
+from qiskit import QuantumCircuit, QuantumRegister
+from pytket.dagcircuit_convert import tket_pass, tk_to_dagcircuit, dagcircuit_to_tk, _normalise_param_in
+from pytket._bubble import Circuit, Transform
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +90,7 @@ class VQE(QuantumAlgorithm):
     }
 
     def __init__(self, operator, var_form, optimizer, operator_mode='matrix',
-                 initial_point=None, batch_mode=False, aux_operators=None):
+                 initial_point=None, batch_mode=False, aux_operators=None, use_symbolics=False):
         """Constructor.
 
         Args:
@@ -113,6 +118,7 @@ class VQE(QuantumAlgorithm):
         self._ret = {}
         self._eval_count = 0
         self._eval_time = 0
+        self._use_symbolics = use_symbolics
         logger.info(self.print_setting())
 
     @classmethod
@@ -270,9 +276,33 @@ class VQE(QuantumAlgorithm):
         parameter_sets = np.split(parameters, num_parameter_sets)
         for idx in range(len(parameter_sets)):
             parameter = parameter_sets[idx]
-            input_circuit = self._var_form.construct_circuit(parameter)
-            circuit = self._operator.construct_evaluation_circuit(self._operator_mode,
-                                                                  input_circuit, self._backend)
+            if self._use_symbolics:
+                parmap = {}
+                for i, p in enumerate(parameter):
+                    parmap['tkparam_{}'.format(i)] = _normalise_param_in(p.item())
+                tr = Transform.get_transform_instance("Synthesise_IBM")
+                if isinstance(self._symbolic_tkcs, (list,)):
+                    circuit = []
+                    for symb_tkc, name in self._symbolic_tkcs:
+                        tkc = Circuit(symb_tkc)
+                        tkc.instantiate_symbolics(parmap)
+                        tr.apply(tkc)
+                        newdag = tk_to_dagcircuit(tkc)
+                        qc = QuantumCircuit.from_qasm_str(newdag.qasm(qeflag=True))
+                        qc.name = name
+                        circuit.append(qc)
+                else:
+                    symb_tkc, name = self._symbolic_tkcs
+                    tkc = Circuit(symb_tkc)
+                    tkc.instantiate_symbolics(parmap)
+                    tr.apply(tkc)
+                    newdag = tk_to_dagcircuit(tkc)
+                    circuit = QuantumCircuit.from_qasm_str(newdag.qasm(qeflag=True))
+                    circuit.name = name
+            else:
+                input_circuit = self._var_form.construct_circuit(parameter, use_symbolics=False)
+                circuit = self._operator.construct_evaluation_circuit(self._operator_mode,
+                                                                    input_circuit, self._backend)
             circuits.append(circuit)
         to_be_simulated_circuits = functools.reduce(lambda x, y: x + y, circuits)
         result = self.execute(to_be_simulated_circuits)
@@ -329,6 +359,27 @@ class VQE(QuantumAlgorithm):
                 low = [(l if l is not None else -2 * np.pi) for (l, u) in bounds]
                 high = [(u if u is not None else 2 * np.pi) for (l, u) in bounds]
                 initial_point = self.random.uniform(low, high)
+        
+        if self._use_symbolics:
+            qc = QuantumCircuit(QuantumRegister(1),ClassicalRegister(1))
+            qc.definitions.update({"symrz":{"print": True, "opaque": False, "n_args":0, "n_bits":1, "args":[], "bits":[]}})
+            input_circuit = self._var_form.construct_circuit(initial_point, use_symbolics=True)
+            circuit = self._operator.construct_evaluation_circuit(self._operator_mode,
+                                                                  input_circuit, self._backend)
+            tkp = tket_pass(self._backend.configuration().to_dict().get('coupling_map', None))
+            if isinstance(circuit, (list,)):
+                self._symbolic_tkcs = []
+                for c in circuit:
+                    dag = DAGCircuit.fromQuantumCircuit(c)
+                    tkc = dagcircuit_to_tk(dag)
+                    tkc, _ = tkp.process_circ(tkc)
+                    self._symbolic_tkcs.append((tkc,dag.name))
+            else:
+                dag = DAGCircuit.fromQuantumCircuit(circuit)
+                tkc = dagcircuit_to_tk(dag)
+                tkc, _ = tkp.process_circ(tkc)
+                self._symbolic_tkcs = (tkc,dag.name)
+            del qc.definitions["symrz"]
 
         start = time.time()
         logger.info('Starting optimizer bounds={}\ninitial point={}'.format(bounds, initial_point))

@@ -49,7 +49,7 @@ class VariationalForm(Pluggable):
         return cls(**args)
 
     @abstractmethod
-    def construct_circuit(self, parameters, q=None):
+    def construct_circuit(self, parameters, q=None, use_symbolics=False):
         """Construct the variational form, given its parameters.
 
         Args:
