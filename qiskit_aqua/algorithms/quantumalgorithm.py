@@ -215,7 +215,6 @@ class QuantumAlgorithm(Pluggable):
                                 'seed': self._random_seed,
                                 'qobj_id': None,
                                 'hpc': hpc_params,
-                                'compiler': compiler,
                                 'seed_mapper': self._random_seed}
 
         info = "Algorithm: '{}' setup with backend '{}', with following setting:\n {}\n{}".format(
