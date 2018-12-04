@@ -115,7 +115,7 @@ def _terra_compile_with_pass_manager(circuits, backend, config=None, basis_gates
                                      pass_manager=None, seed_mapper=None):
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
-                                    seed_mapper, hpc, pass_manager)
+                                    seed_mapper, pass_manager)
 
     qobj = circuits_to_qobj(circuits, backend_name=backend.name(),
                             config=config, shots=shots, max_credits=max_credits,
