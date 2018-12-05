@@ -285,7 +285,7 @@ class VQE(QuantumAlgorithm):
             std_energy.append(np.real(std))
             self._eval_count += 1
             logger.info('Energy evaluation {} returned {}'.format(self._eval_count, np.real(mean)))
-        print('Energy evaluation {} returned {}'.format(self._eval_count, np.real(mean)), flush=True)
+        # print('Energy evaluation {} returned {}'.format(self._eval_count, np.real(mean)), flush=True)
 
         return mean_energy if len(mean_energy) > 1 else mean_energy[0]
 
